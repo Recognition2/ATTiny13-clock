@@ -26,7 +26,7 @@ OBJCOPY = avr-objcopy
 CFLAGS += -flto -Wall -Os -mmcu=$(MCU)
 CXXFLAGS += -flto -Wall -Os -mmcu=$(MCU)
 LDFLAGS += -flto
-SRC     = $(shell find . -name '*.c' -o -name '*.cpp' ! -path './cmake-build-debug/*' ! -path './cmake-build-default/*')
+SRC     = $(shell find . -path 'src/*' -name '*.c' -o -name '*.cpp' ! -path './cmake-build-debug/*' ! -path './cmake-build-default/*')
 OBJ     = $(patsubst %.cpp,%.o,$(SRC))
 
 # Be silent per default, but 'make V=1' will show all compiler calls.
