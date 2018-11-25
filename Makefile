@@ -58,7 +58,7 @@ flash: $(PROGRAM).hex
 
 clean:
 	@printf "  CLEAN   $(subst $(shell pwd)/,,$(OBJS))\n"
-	$(Q)rm -f $(OBJS)
+	$(Q)rm -f $(OBJ)
 	@printf "  CLEAN   $(PROGRAM).elf\n"
 	$(Q)rm -f *.elf
 	@printf "  CLEAN   $(PROGRAM).hex\n"
