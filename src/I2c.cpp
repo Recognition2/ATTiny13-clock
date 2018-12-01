@@ -5,17 +5,10 @@
 #include "I2c.h"
 #include <util/delay.h>
 
-#if defined(__arm__)
-# define NOP __asm__ __volatile__ ("nop\n");
-#else
-#  define NOP __asm__ __volatile__ ("cp r0,r0\n");
-#endif
+#define I2C_READ                    0b1
+#define I2C_WRITE                   0b0
 
-#define NOP2 NOP NOP
-#define NOP4 NOP2 NOP2
-
-#define I2C_READ true
-#define I2C_WRITE false
+#define I2C_CLOCK_CYCLE_DELAY       NOP4
 
 // DDRx: Data Direction Register
 // PORTx: your port
@@ -37,6 +30,14 @@ I2c::I2c(uint8_t address) {
 }
 
 // Public functions
+/**
+ * While not part of the I2C spec, devices often work with registers that data
+ * can be read from or written to.
+ * In this case, the spec changes from <Slaveaddr Data> to <Slaveaddr reg data>
+ *
+ * @param reg
+ * @return
+ */
 uint8_t I2c::readReg(uint8_t reg) {
     startCondition();
     writeByte(address | I2C_WRITE);
@@ -45,11 +46,19 @@ uint8_t I2c::readReg(uint8_t reg) {
     startCondition();
     writeByte(address | I2C_READ);
 
-    uint8_t res = readByte(true); // The actual byte
+    uint8_t res = readByte(false); // The actual byte
     stopCondition(); // End transmission
     return res;
 }
 
+/**
+ * While not part of the I2C spec, devices often work with registers that data
+ * can be read from or written to.
+ * In this case, the spec changes from <Slaveaddr Data> to <Slaveaddr reg data>
+ * @param reg to write to
+ * @param data to write
+ * @return
+ */
 bool I2c::writeReg(uint8_t reg, uint8_t data) {
     startCondition();
     bool ack = writeByte(address | I2C_WRITE);
@@ -63,12 +72,21 @@ bool I2c::writeReg(uint8_t reg, uint8_t data) {
 ////// Private helpers
 ////////////
 
-bool I2c::writeByte(uint8_t b) {
+/**
+ * writeByte clocks all bits of a given byte to the device
+ * MSB first
+ * Returns whether or not the byte was ack'd
+ * @warning You need to take care of the startCondition beforehand and stopCondition after
+ *
+ * @param byte to write to the I2C device
+ * @return
+ */
+bool I2c::writeByte(uint8_t byte) {
     for (int i = 0; i < 8; i++) {
-        (b & 0x80) ? dataHigh() : dataLow();
+        (byte & 0x80) ? dataHigh() : dataLow();
         clockHigh();
         clockLow();
-        b <<= 1;
+        byte <<= 1;
     }
 
     // Check for ack
@@ -79,7 +97,14 @@ bool I2c::writeByte(uint8_t b) {
     return res;
 }
 
-uint8_t I2c::readByte(bool ignoreAck) {
+/**
+ * Clocks a byte in from the device.
+ * If ignoreAck is true, leave the line high
+ * @warning You need to take care of the startCondition beforehand and stopCondition after
+ * @param ack
+ * @return
+ */
+uint8_t I2c::readByte(bool ack) {
     dataInput();
     uint8_t res = 0;
     for (int i = 0; i < 8; i++) {
@@ -88,36 +113,62 @@ uint8_t I2c::readByte(bool ignoreAck) {
         clockLow();
     }
     // Send ACK
-    ignoreAck ? dataHigh() : dataLow();
+    if (ack) {
+        dataLow();
+    }
     clockHigh();
     clockLow();
+
+    dataHigh();
     return res;
 }
 
-/* I2C Start condition, data line goes low when clock is high */
+/**
+ * I2C Start condition, data line goes low when clock is high *
+ */
 void I2c::startCondition() {
     dataHigh();
     clockHigh(true);
+    NOP;
     dataLow();
     clockLow();
 }
 
-/* I2C Stop condition, clock goes high when data is low */
+/**
+ * I2C Stop condition, clock goes high when data is low
+ */
 void I2c::stopCondition() {
     clockLow();
     dataLow();
-    clockHigh();
+    NOP;
+    clockHigh(true);
     dataHigh();
 }
 
+/**
+ * Actively pull line down
+ * Cannot be done at once (requires change in both PORT and DDR register)
+ * So go through high-impedance (input) mode.
+ */
 void I2c::clockLow() {
     PORTB &= ~(1<< I2C_CLK_PIN); // PORT = 0 (ddr=0) -> High-Impedance
     DDRB |= (1 << I2C_CLK_PIN); // DDR = 1 (port=0) -> Zero
 
-    NOP4;
+    I2C_CLOCK_CYCLE_DELAY;
 }
 
 // NOT active high, but pull-up high
+/**
+ * Let line float high with pull-up resistor
+ * Cannot be done at once
+ * Go through Input mode
+ *
+ * Clock stretching is the fenomenon where the slave can actively hold the clock line down
+ * if they are not ready to continue communication yet.
+ * If this happens, the master should wait until they release the clock line to continue
+ *
+ * @param ignoreClockStretching
+ */
 void I2c::clockHigh(bool ignoreClockStretching) {
     DDRB &= ~(1 << I2C_CLK_PIN); // DDR = 0 (port=0) -> Input / High-Impedance
     PORTB |= (1 << I2C_CLK_PIN); // PORT = 1 (ddr=0) -> Pull-up
@@ -127,7 +178,7 @@ void I2c::clockHigh(bool ignoreClockStretching) {
         while (!(PORTB & (1 << I2C_CLK_PIN)));
     }
 
-    NOP4;
+    I2C_CLOCK_CYCLE_DELAY;
 }
 
 // Active-low
@@ -143,10 +194,10 @@ void I2c::dataHigh() {
     PORTB |= (1 << I2C_CLK_PIN); // PORT = 1 (ddr=0) -> Pull-up
 }
 
-// Active low
+// High-impedance mode
 void I2c::dataInput() {
     DDRB &= ~(1 << I2C_DATA_PIN); // DDR is 0, PORT unknown -> tristate -> input or pul-up
-    PORTB |= (1 << I2C_DATA_PIN);
+    PORTB &= ~(1 << I2C_DATA_PIN); // PORTB = 0 -> input
 }
 
 bool I2c::readBit() {

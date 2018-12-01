@@ -18,7 +18,7 @@
 ## Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
 ##
 
-MCU = attiny85
+MCU = attiny13
 PROGRAM=$(MCU)-clock
 CC = avr-gcc
 CXX = avr-g++
