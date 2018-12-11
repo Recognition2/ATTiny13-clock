@@ -28,7 +28,7 @@ public:
 
 private:
     const bool useClockStretching = false;
-    uint8_t address;
+    const uint8_t address;
 
     // Most basic operations
     void clockHigh(bool ignoreClockStretching = false);

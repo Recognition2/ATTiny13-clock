@@ -25,8 +25,8 @@
 // --> High-Z: DDR = 0, PORT = 1 // Pull-Up
 
 
-I2c::I2c(uint8_t address) {
-    this->address = address << 1;
+I2c::I2c(uint8_t address) : address (address << 1){
+//    this->address = address << 1;
 }
 
 // Public functions

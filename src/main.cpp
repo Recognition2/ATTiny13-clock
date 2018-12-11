@@ -78,96 +78,21 @@ int main() {
  * @param value
  */
 void writeCharliePlex4(int ledNum, bool value) {
+    pinHighZ(0);
+    pinHighZ(1);
+    pinHighZ(2);
+    pinHighZ(3);
+
     if (!value) {
-        pinHighZ(0);
-        pinHighZ(1);
-        pinHighZ(2);
-        pinHighZ(3);
+        return;
     }
-    switch (ledNum) {
-        case 0:
-            pinHighZ(2);
-            pinHighZ(3);
-            pinLow(1);
-            pinHigh(0);
-            break;
-
-        case 1:
-            pinHighZ(2);
-            pinHighZ(3);
-            pinLow(0);
-            pinHigh(1);
-            break;
-
-        case 2:
-            pinHighZ(0);
-            pinHighZ(3);
-            pinLow(2);
-            pinHigh(1);
-            break;
-
-        case 3:
-            pinHighZ(0);
-            pinHighZ(3);
-            pinLow(1);
-            pinHigh(2);
-            break;
-
-        case 4:
-            pinHighZ(0);
-            pinHighZ(1);
-            pinLow(3);
-            pinHigh(2);
-            break;
-
-        case 5:
-            pinHighZ(0);
-            pinHighZ(1);
-            pinLow(2);
-            pinHigh(3);
-            break;
-
-        case 6:
-            pinHighZ(1);
-            pinHighZ(3);
-            pinLow(2);
-            pinHigh(0);
-            break;
-
-        case 7:
-            pinHighZ(1);
-            pinHighZ(3);
-            pinLow(0);
-            pinHigh(2);
-            break;
-
-        case 8:
-            pinHighZ(0);
-            pinHighZ(2);
-            pinLow(3);
-            pinHigh(1);
-            break;
-
-        case 9:
-            pinHighZ(0);
-            pinHighZ(2);
-            pinLow(1);
-            pinHigh(3);
-            break;
-
-        case 10:
-            pinHighZ(1);
-            pinHighZ(2);
-            pinLow(3);
-            pinHigh(0);
-            break;
-
-        case 11:
-            pinHighZ(1);
-            pinHighZ(2);
-            pinLow(0);
-            pinHigh(3);
+    int high = ledNum / 3;
+    int low = ledNum % 3;
+    if (low >= high) {
+        ++low;
     }
+    pinLow(low);
+    pinHigh(high);
     _delay_us(100);
 }
 

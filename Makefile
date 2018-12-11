@@ -25,7 +25,7 @@ CXX = avr-g++
 OBJCOPY = avr-objcopy
 CFLAGS += -flto -Wall -Os -mmcu=$(MCU)
 CXXFLAGS += -flto -Wall -Os -mmcu=$(MCU)
-LDFLAGS += -flto
+LDFLAGS += -flto -fwhole-program
 SRC     = $(shell find . -path 'src/*' -name '*.c' -o -name '*.cpp' ! -path './cmake-build-debug/*' ! -path './cmake-build-default/*')
 OBJ     = $(patsubst %.cpp,%.o,$(SRC))
 
